@@ -1,135 +1,803 @@
-import React from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Save, Download, Upload, ChevronRight, ChevronLeft, CheckCircle, Circle, AlertCircle, Plus, Trash2, Edit2, FileText, Database, Settings, Activity, DollarSign, Shield, Play, Copy, X } from 'lucide-react';
 
-/**
- * AgentPrep - Use Case Collector Component
- * 
- * TODO: Copy the full AgentPrep component from the provided document
- * "AgentPrep: Use Case Collector.tsx"
- * 
- * The component should be copied in its entirety and placed here.
- * It includes all the functionality for:
- * - Use case management
- * - Process step mapping
- * - Data asset cataloging
- * - Application management
- * - Business rules and SLAs
- * - Metrics and ROI calculation
- * - Readiness assessment
- * - Export functionality
- * 
- * For now, this is a placeholder that shows setup instructions.
- */
+// API Configuration
+const API_BASE = '/api/use-cases';
 
+// API Client Functions
+const api = {
+  // Use Cases
+  createUseCase: async (data: any) => {
+    const res = await fetch(`${API_BASE}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to create use case');
+    return res.json();
+  },
+  
+  getUseCase: async (id: string) => {
+    const res = await fetch(`${API_BASE}/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch use case');
+    return res.json();
+  },
+  
+  updateUseCase: async (id: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to update use case');
+    return res.json();
+  },
+  
+  listUseCases: async (ownerId: string) => {
+    const res = await fetch(`${API_BASE}?owner_id=${ownerId}`);
+    if (!res.ok) throw new Error('Failed to list use cases');
+    return res.json();
+  },
+  
+  deleteUseCase: async (id: string) => {
+    const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete use case');
+  },
+  
+  // Roles
+  listRoles: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/roles`);
+    if (!res.ok) throw new Error('Failed to fetch roles');
+    return res.json();
+  },
+  
+  createRole: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/roles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to create role');
+    return res.json();
+  },
+  
+  deleteRole: async (useCaseId: string, roleId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/roles`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roleId })
+    });
+    if (!res.ok) throw new Error('Failed to delete role');
+  },
+  
+  // Process Steps
+  listSteps: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/steps`);
+    if (!res.ok) throw new Error('Failed to fetch steps');
+    return res.json();
+  },
+  
+  createStep: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/steps`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to create step');
+    return res.json();
+  },
+  
+  deleteStep: async (useCaseId: string, stepId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/steps`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stepId })
+    });
+    if (!res.ok) throw new Error('Failed to delete step');
+  },
+  
+  // Data Assets
+  listDataAssets: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/data-assets`);
+    if (!res.ok) throw new Error('Failed to fetch data assets');
+    return res.json();
+  },
+  
+  createDataAsset: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/data-assets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to create data asset');
+    return res.json();
+  },
+  
+  deleteDataAsset: async (useCaseId: string, assetId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/data-assets`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assetId })
+    });
+    if (!res.ok) throw new Error('Failed to delete data asset');
+  },
+  
+  // Applications
+  listApplications: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/applications`);
+    if (!res.ok) throw new Error('Failed to fetch applications');
+    return res.json();
+  },
+  
+  createApplication: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/applications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to create application');
+    return res.json();
+  },
+  
+  deleteApplication: async (useCaseId: string, applicationId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/applications`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId })
+    });
+    if (!res.ok) throw new Error('Failed to delete application');
+  },
+  
+  // Rules
+  listRules: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/rules`);
+    if (!res.ok) throw new Error('Failed to fetch rules');
+    return res.json();
+  },
+  
+  createRule: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/rules`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to create rule');
+    return res.json();
+  },
+  
+  deleteRule: async (useCaseId: string, ruleId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/rules`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ruleId })
+    });
+    if (!res.ok) throw new Error('Failed to delete rule');
+  },
+  
+  // SLAs
+  listSLAs: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/slas`);
+    if (!res.ok) throw new Error('Failed to fetch SLAs');
+    return res.json();
+  },
+  
+  createSLA: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/slas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to create SLA');
+    return res.json();
+  },
+  
+  deleteSLA: async (useCaseId: string, slaId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/slas`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slaId })
+    });
+    if (!res.ok) throw new Error('Failed to delete SLA');
+  },
+  
+  // Metrics
+  getMetrics: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/metrics`);
+    if (!res.ok) return null;
+    return res.json();
+  },
+  
+  updateMetrics: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/metrics`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to update metrics');
+    return res.json();
+  },
+  
+  // ROI (read-only, auto-calculated)
+  getROI: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/roi`);
+    if (!res.ok) return null;
+    return res.json();
+  },
+  
+  // Readiness (read-only, auto-calculated)
+  getReadiness: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/readiness`);
+    if (!res.ok) return null;
+    return res.json();
+  },
+  
+  // Export/Import
+  exportUseCase: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/export`);
+    if (!res.ok) throw new Error('Failed to export use case');
+    return res.json();
+  },
+  
+  importUseCase: async (pack: any, ownerId: string) => {
+    const res = await fetch(`${API_BASE}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pack, owner_id: ownerId })
+    });
+    if (!res.ok) throw new Error('Failed to import use case');
+    return res.json();
+  }
+};
+
+// Main Application Component
 export default function AgentPrep() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-8">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-2xl p-12">
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-4">
-            AgentPrep
-          </h1>
-          <p className="text-xl text-gray-600">Use Case Collector for Agentic AI</p>
+  const [activeSection, setActiveSection] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState(new Date());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // User/Owner ID - in production, get from auth
+  const ownerId = 'default-user'; // TODO: Replace with actual auth
+
+  // Core use case data
+  const [useCase, setUseCase] = useState({
+    id: '',
+    name: '',
+    objective: '',
+    scope: '',
+    sponsor: '',
+    priority: 'medium',
+    status: 'draft',
+    tags: [],
+    owner_id: ownerId,
+    created_at: new Date().toISOString()
+  });
+
+  const [processSteps, setProcessSteps] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [dataAssets, setDataAssets] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [connectors, setConnectors] = useState([]);
+  const [rules, setRules] = useState([]);
+  const [slas, setSlas] = useState([]);
+  const [metrics, setMetrics] = useState({
+    baselineVolume: 0,
+    avgHandlingTime: 0,
+    fteCost: 0,
+    errorRate: 0,
+    breachCost: 0
+  });
+
+  const [roiResults, setRoiResults] = useState(null);
+  const [readinessScore, setReadinessScore] = useState(null);
+
+  // Load or create use case on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const useCaseId = urlParams.get('id');
+    
+    if (useCaseId) {
+      loadUseCase(useCaseId);
+    } else {
+      createNewUseCase();
+    }
+  }, []);
+
+  const createNewUseCase = async () => {
+    try {
+      setLoading(true);
+      const newUseCase = await api.createUseCase({
+        name: '',
+        objective: '',
+        scope: '',
+        owner_id: ownerId,
+        priority: 'medium',
+        tags: []
+      });
+      setUseCase(newUseCase);
+      // Update URL
+      window.history.pushState({}, '', `?id=${newUseCase.id}`);
+    } catch (err) {
+      setError('Failed to create use case');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUseCase = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Load all data in parallel
+      const [
+        useCaseData,
+        rolesData,
+        stepsData,
+        assetsData,
+        appsData,
+        rulesData,
+        slasData,
+        metricsData,
+        roiData,
+        readinessData
+      ] = await Promise.all([
+        api.getUseCase(id),
+        api.listRoles(id),
+        api.listSteps(id),
+        api.listDataAssets(id),
+        api.listApplications(id),
+        api.listRules(id),
+        api.listSLAs(id),
+        api.getMetrics(id),
+        api.getROI(id),
+        api.getReadiness(id)
+      ]);
+      
+      setUseCase(useCaseData);
+      setRoles(rolesData);
+      setProcessSteps(organizeStepsHierarchy(stepsData));
+      setDataAssets(assetsData);
+      setApplications(appsData);
+      setRules(rulesData);
+      setSlas(slasData);
+      
+      if (metricsData) {
+        setMetrics({
+          baselineVolume: metricsData.baseline_volume || 0,
+          avgHandlingTime: metricsData.avg_handling_time_minutes || 0,
+          fteCost: metricsData.fte_cost_per_hour || 0,
+          errorRate: metricsData.error_rate || 0,
+          breachCost: metricsData.breach_cost_usd || 0
+        });
+      }
+      
+      setRoiResults(roiData);
+      setReadinessScore(readinessData);
+      
+      setLastSaved(new Date());
+    } catch (err) {
+      setError('Failed to load use case');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Organize flat steps into hierarchy
+  const organizeStepsHierarchy = (flatSteps: any[]) => {
+    const stepMap = new Map();
+    const rootSteps = [];
+    
+    // First pass: create map
+    flatSteps.forEach(step => {
+      stepMap.set(step.id, { ...step, substeps: [] });
+    });
+    
+    // Second pass: build hierarchy
+    flatSteps.forEach(step => {
+      const stepWithChildren = stepMap.get(step.id);
+      if (step.parent_id) {
+        const parent = stepMap.get(step.parent_id);
+        if (parent) {
+          parent.substeps.push(stepWithChildren);
+        }
+      } else {
+        rootSteps.push(stepWithChildren);
+      }
+    });
+    
+    return rootSteps;
+  };
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (!useCase.id || !unsavedChanges) return;
+    
+    const timer = setTimeout(() => {
+      handleSave();
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [unsavedChanges, useCase]);
+
+  const handleSave = async () => {
+    if (!useCase.id) return;
+    
+    try {
+      setSaving(true);
+      await api.updateUseCase(useCase.id, {
+        name: useCase.name,
+        objective: useCase.objective,
+        scope: useCase.scope,
+        sponsor: useCase.sponsor,
+        priority: useCase.priority,
+        status: useCase.status,
+        tags: useCase.tags
+      });
+      
+      setLastSaved(new Date());
+      setUnsavedChanges(false);
+    } catch (err) {
+      console.error('Auto-save failed:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const markDirty = () => {
+    setUnsavedChanges(true);
+  };
+
+  // Navigation sections with completion tracking
+  const sections = [
+    { id: 'overview', label: 'Overview', icon: FileText, complete: useCase.name && useCase.objective && useCase.scope },
+    { id: 'steps', label: 'Process Steps', icon: Activity, complete: processSteps.length >= 3 },
+    { id: 'data', label: 'Data Assets', icon: Database, complete: dataAssets.length >= 1 },
+    { id: 'apps', label: 'Apps & Connectors', icon: Settings, complete: applications.length >= 1 },
+    { id: 'rules', label: 'Rules & SLAs', icon: Shield, complete: rules.length >= 1 || slas.length >= 1 },
+    { id: 'metrics', label: 'Metrics & ROI', icon: DollarSign, complete: metrics.baselineVolume > 0 },
+    { id: 'review', label: 'Review & Publish', icon: CheckCircle, complete: false }
+  ];
+
+  const exportUseCasePack = async () => {
+    if (!useCase.id) return;
+    
+    try {
+      const pack = await api.exportUseCase(useCase.id);
+      
+      const blob = new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `usecase-${useCase.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to export use case');
+      console.error(err);
+    }
+  };
+
+  const importUseCasePack = async (e: any) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const pack = JSON.parse(event.target.result as string);
+        const result = await api.importUseCase(pack, ownerId);
+        
+        alert('Use case imported successfully!');
+        // Reload the imported use case
+        window.location.href = `?id=${result.id}`;
+      } catch (err) {
+        alert('Invalid use case file or import failed');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const getCompletionPercentage = () => {
+    const completed = sections.filter(s => s.complete).length;
+    return Math.round((completed / sections.length) * 100);
+  };
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="text-gray-600">Loading use case...</div>
         </div>
+      </div>
+    );
+  }
 
-        <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
-          <h2 className="text-2xl font-bold text-blue-900 mb-4">📋 Setup Required</h2>
-          <p className="text-blue-800 mb-4">
-            The full AgentPrep component needs to be added to complete this application.
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          <div className="border-l-4 border-indigo-500 pl-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Step 1: Get the Component</h3>
-            <p className="text-gray-700">
-              Copy the full component code from <code className="bg-gray-100 px-2 py-1 rounded">AgentPrep: Use Case Collector.tsx</code>
-            </p>
-          </div>
-
-          <div className="border-l-4 border-purple-500 pl-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Step 2: Replace This File</h3>
-            <p className="text-gray-700 mb-2">
-              Replace the contents of <code className="bg-gray-100 px-2 py-1 rounded">src/components/AgentPrep.tsx</code>
-            </p>
-            <p className="text-sm text-gray-600">
-              The component is approximately 3000+ lines and includes all UI and logic.
-            </p>
-          </div>
-
-          <div className="border-l-4 border-green-500 pl-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Step 3: Optional Firebase Integration</h3>
-            <p className="text-gray-700 mb-2">
-              The component works standalone with localStorage, or can be integrated with Firebase:
-            </p>
-            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1 ml-4">
-              <li>Import Firebase hooks from <code>../firebase/hooks</code></li>
-              <li>Import Firebase services from <code>../firebase/services</code></li>
-              <li>Connect save/load operations to Firestore</li>
-            </ul>
-          </div>
-
-          <div className="border-l-4 border-orange-500 pl-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Step 4: Test</h3>
-            <p className="text-gray-700">
-              Run <code className="bg-gray-100 px-2 py-1 rounded">npm run dev</code> to start the development server
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">📚 Documentation</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <a
-              href="https://github.com/DataandAI1/agentprep/blob/main/README.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-            >
-              <div className="font-semibold text-indigo-600">README.md</div>
-              <div className="text-sm text-gray-600">Project overview</div>
-            </a>
-            <a
-              href="https://github.com/DataandAI1/agentprep/blob/main/SETUP_INSTRUCTIONS.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-            >
-              <div className="font-semibold text-purple-600">SETUP_INSTRUCTIONS.md</div>
-              <div className="text-sm text-gray-600">Detailed setup guide</div>
-            </a>
-            <a
-              href="https://github.com/DataandAI1/agentprep/blob/main/DEPLOYMENT.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-            >
-              <div className="font-semibold text-green-600">DEPLOYMENT.md</div>
-              <div className="text-sm text-gray-600">Deployment guide</div>
-            </a>
-            <a
-              href="https://firebase.google.com/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-            >
-              <div className="font-semibold text-orange-600">Firebase Docs</div>
-              <div className="text-sm text-gray-600">Firebase documentation</div>
-            </a>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center">
-          <a
-            href="https://github.com/DataandAI1/agentprep"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <div className="text-xl font-semibold text-gray-900 mb-2">Error Loading Use Case</div>
+          <div className="text-gray-600 mb-4">{error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-            </svg>
-            View on GitHub
-          </a>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Top Bar */}
+      <div className="h-14 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex items-center justify-between px-4 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="text-xl font-bold">AgentPrep</div>
+          <div className="text-sm opacity-80">Use Case Collector</div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="text-sm">
+            {useCase.name || 'Untitled Use Case'} • {useCase.status === 'draft' ? 'Draft' : 'Ready'}
+          </div>
+          <div className="text-xs opacity-75">
+            {saving ? 'Saving...' : unsavedChanges ? 'Unsaved changes' : `Saved ${lastSaved.toLocaleTimeString()}`}
+          </div>
+          <div className="flex gap-2">
+            <label className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-400 rounded flex items-center gap-2 text-sm cursor-pointer transition">
+              <Upload className="w-4 h-4" />
+              Import
+              <input type="file" accept=".json" onChange={importUseCasePack} className="hidden" />
+            </label>
+            <button 
+              onClick={exportUseCasePack}
+              disabled={!useCase.name}
+              className="px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 rounded flex items-center gap-2 text-sm transition"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="h-2 bg-gray-200">
+        <div 
+          className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-500"
+          style={{ width: `${getCompletionPercentage()}%` }}
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar */}
+        <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden`}>
+          <div className="flex items-center justify-between p-3 border-b border-gray-200">
+            <div className="font-semibold text-gray-700">Sections</div>
+            <button onClick={() => setSidebarOpen(false)}>
+              <ChevronLeft className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-3 space-y-1">
+            {sections.map((section) => {
+              const Icon = section.icon;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded transition ${
+                    activeSection === section.id
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="flex-1 text-left text-sm">{section.label}</span>
+                  {section.complete ? (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <Circle className="w-4 h-4 text-gray-300" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-3 border-t border-gray-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+            <div className="text-xs font-semibold text-gray-700 mb-2">Completion</div>
+            <div className="text-2xl font-bold text-indigo-600 mb-1">{getCompletionPercentage()}%</div>
+            <div className="text-xs text-gray-600">
+              {sections.filter(s => s.complete).length} of {sections.length} sections
+            </div>
+          </div>
+        </div>
+
+        {!sidebarOpen && (
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="absolute left-0 top-20 bg-white border border-gray-200 rounded-r p-1 shadow z-10 hover:bg-gray-50"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          </button>
+        )}
+
+        {/* Content Area - Placeholder sections */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-5xl mx-auto p-6">
+            {activeSection === 'overview' && (
+              <OverviewSection 
+                useCase={useCase} 
+                setUseCase={setUseCase} 
+                markDirty={markDirty}
+              />
+            )}
+            {activeSection === 'steps' && (
+              <div className="text-center py-12">
+                <Activity className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+                <h2 className="text-2xl font-bold mb-2">Process Steps Section</h2>
+                <p className="text-gray-600">Map out the workflow from trigger to completion</p>
+              </div>
+            )}
+            {activeSection === 'data' && (
+              <div className="text-center py-12">
+                <Database className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+                <h2 className="text-2xl font-bold mb-2">Data Assets Section</h2>
+                <p className="text-gray-600">Identify data objects and fields</p>
+              </div>
+            )}
+            {activeSection === 'apps' && (
+              <div className="text-center py-12">
+                <Settings className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+                <h2 className="text-2xl font-bold mb-2">Apps & Connectors Section</h2>
+                <p className="text-gray-600">Catalog systems and APIs</p>
+              </div>
+            )}
+            {activeSection === 'rules' && (
+              <div className="text-center py-12">
+                <Shield className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+                <h2 className="text-2xl font-bold mb-2">Rules & SLAs Section</h2>
+                <p className="text-gray-600">Define business rules and service levels</p>
+              </div>
+            )}
+            {activeSection === 'metrics' && (
+              <div className="text-center py-12">
+                <DollarSign className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+                <h2 className="text-2xl font-bold mb-2">Metrics & ROI Section</h2>
+                <p className="text-gray-600">Quantify impact and expected value</p>
+              </div>
+            )}
+            {activeSection === 'review' && (
+              <div className="text-center py-12">
+                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+                <h2 className="text-2xl font-bold mb-2">Review & Publish Section</h2>
+                <p className="text-gray-600">Check completeness and export</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Overview Section Component
+function OverviewSection({ useCase, setUseCase, markDirty }: any) {
+  const updateField = (field: string, value: any) => {
+    setUseCase((prev: any) => ({ ...prev, [field]: value }));
+    markDirty();
+  };
+
+  const exampleObjectives = [
+    "Reduce manual invoice processing time by 70% with automated 3-way matching",
+    "Automate customer onboarding KYC checks to improve turnaround from 3 days to 4 hours",
+    "Streamline quote approval process with intelligent routing and pre-validation"
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Use Case Overview</h1>
+        <p className="text-gray-600">Start by describing what you want to automate and why it matters.</p>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Use Case Name *
+          </label>
+          <input
+            type="text"
+            value={useCase.name}
+            onChange={(e) => updateField('name', e.target.value)}
+            placeholder="e.g., Invoice Processing Automation"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Objective *
+          </label>
+          <textarea
+            value={useCase.objective}
+            onChange={(e) => updateField('objective', e.target.value)}
+            placeholder="What business problem are you solving? What value will automation deliver?"
+            rows={4}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+          />
+          <div className="mt-2 text-xs text-gray-500">
+            <div className="font-medium mb-1">Examples:</div>
+            {exampleObjectives.map((ex, i) => (
+              <div key={i} className="mb-1">• {ex}</div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Scope & Boundaries *
+          </label>
+          <textarea
+            value={useCase.scope}
+            onChange={(e) => updateField('scope', e.target.value)}
+            placeholder="What's included? What's excluded? Any constraints or limitations?"
+            rows={3}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Business Sponsor
+            </label>
+            <input
+              type="text"
+              value={useCase.sponsor}
+              onChange={(e) => updateField('sponsor', e.target.value)}
+              placeholder="e.g., Director of Finance Ops"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority
+            </label>
+            <select
+              value={useCase.priority}
+              onChange={(e) => updateField('priority', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex gap-3">
+          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-900">
+            <div className="font-semibold mb-1">Quick Tip</div>
+            <div>Be specific about your objective. Good objectives are measurable and time-bound. For example: "Reduce quote processing time from 2 hours to 15 minutes" is better than "Make quotes faster."</div>
+          </div>
         </div>
       </div>
     </div>
