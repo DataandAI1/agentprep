@@ -1,253 +1,21 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Save, Download, Upload, ChevronRight, ChevronLeft, CheckCircle, Circle, AlertCircle, Plus, Trash2, Edit2, FileText, Database, Settings, Activity, DollarSign, Shield, Play, Copy, X } from 'lucide-react';
-
-// API Configuration
-const API_BASE = '/api/use-cases';
-
-// API Client Functions
-const api = {
-  // Use Cases
-  createUseCase: async (data: any) => {
-    const res = await fetch(`${API_BASE}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create use case');
-    return res.json();
-  },
-  
-  getUseCase: async (id: string) => {
-    const res = await fetch(`${API_BASE}/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch use case');
-    return res.json();
-  },
-  
-  updateUseCase: async (id: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to update use case');
-    return res.json();
-  },
-  
-  listUseCases: async (ownerId: string) => {
-    const res = await fetch(`${API_BASE}?owner_id=${ownerId}`);
-    if (!res.ok) throw new Error('Failed to list use cases');
-    return res.json();
-  },
-  
-  deleteUseCase: async (id: string) => {
-    const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete use case');
-  },
-  
-  // Roles
-  listRoles: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/roles`);
-    if (!res.ok) throw new Error('Failed to fetch roles');
-    return res.json();
-  },
-  
-  createRole: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/roles`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create role');
-    return res.json();
-  },
-  
-  deleteRole: async (useCaseId: string, roleId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/roles`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roleId })
-    });
-    if (!res.ok) throw new Error('Failed to delete role');
-  },
-  
-  // Process Steps
-  listSteps: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/steps`);
-    if (!res.ok) throw new Error('Failed to fetch steps');
-    return res.json();
-  },
-  
-  createStep: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/steps`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create step');
-    return res.json();
-  },
-  
-  deleteStep: async (useCaseId: string, stepId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/steps`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stepId })
-    });
-    if (!res.ok) throw new Error('Failed to delete step');
-  },
-  
-  // Data Assets
-  listDataAssets: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/data-assets`);
-    if (!res.ok) throw new Error('Failed to fetch data assets');
-    return res.json();
-  },
-  
-  createDataAsset: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/data-assets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create data asset');
-    return res.json();
-  },
-  
-  deleteDataAsset: async (useCaseId: string, assetId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/data-assets`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assetId })
-    });
-    if (!res.ok) throw new Error('Failed to delete data asset');
-  },
-  
-  // Applications
-  listApplications: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/applications`);
-    if (!res.ok) throw new Error('Failed to fetch applications');
-    return res.json();
-  },
-  
-  createApplication: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/applications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create application');
-    return res.json();
-  },
-  
-  deleteApplication: async (useCaseId: string, applicationId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/applications`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId })
-    });
-    if (!res.ok) throw new Error('Failed to delete application');
-  },
-  
-  // Rules
-  listRules: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/rules`);
-    if (!res.ok) throw new Error('Failed to fetch rules');
-    return res.json();
-  },
-  
-  createRule: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/rules`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create rule');
-    return res.json();
-  },
-  
-  deleteRule: async (useCaseId: string, ruleId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/rules`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ruleId })
-    });
-    if (!res.ok) throw new Error('Failed to delete rule');
-  },
-  
-  // SLAs
-  listSLAs: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/slas`);
-    if (!res.ok) throw new Error('Failed to fetch SLAs');
-    return res.json();
-  },
-  
-  createSLA: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/slas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create SLA');
-    return res.json();
-  },
-  
-  deleteSLA: async (useCaseId: string, slaId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/slas`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slaId })
-    });
-    if (!res.ok) throw new Error('Failed to delete SLA');
-  },
-  
-  // Metrics
-  getMetrics: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/metrics`);
-    if (!res.ok) return null;
-    return res.json();
-  },
-  
-  updateMetrics: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/metrics`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to update metrics');
-    return res.json();
-  },
-  
-  // ROI (read-only, auto-calculated)
-  getROI: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/roi`);
-    if (!res.ok) return null;
-    return res.json();
-  },
-  
-  // Readiness (read-only, auto-calculated)
-  getReadiness: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/readiness`);
-    if (!res.ok) return null;
-    return res.json();
-  },
-  
-  // Export/Import
-  exportUseCase: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/export`);
-    if (!res.ok) throw new Error('Failed to export use case');
-    return res.json();
-  },
-  
-  importUseCase: async (pack: any, ownerId: string) => {
-    const res = await fetch(`${API_BASE}/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pack, owner_id: ownerId })
-    });
-    if (!res.ok) throw new Error('Failed to import use case');
-    return res.json();
-  }
-};
+import { useEffect, useState } from 'react';
+import {
+  Download,
+  Upload,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle,
+  Circle,
+  AlertCircle,
+  FileText,
+  Database,
+  Settings,
+  Activity,
+  DollarSign,
+  Shield,
+} from 'lucide-react';
+import { StepsSection, DataSection, AppsSection, RulesSection, MetricsSection, ReviewSection } from './AgentPrepSections';
+import { api } from './agentPrepApi';
 
 // Main Application Component
 export default function AgentPrep() {
@@ -276,13 +44,13 @@ export default function AgentPrep() {
     created_at: new Date().toISOString()
   });
 
-  const [processSteps, setProcessSteps] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [dataAssets, setDataAssets] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [connectors, setConnectors] = useState([]);
-  const [rules, setRules] = useState([]);
-  const [slas, setSlas] = useState([]);
+  const [processSteps, setProcessSteps] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [dataAssets, setDataAssets] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [connectors, setConnectors] = useState<any[]>([]);
+  const [rules, setRules] = useState<any[]>([]);
+  const [slas, setSlas] = useState<any[]>([]);
   const [metrics, setMetrics] = useState({
     baselineVolume: 0,
     avgHandlingTime: 0,
@@ -291,8 +59,8 @@ export default function AgentPrep() {
     breachCost: 0
   });
 
-  const [roiResults, setRoiResults] = useState(null);
-  const [readinessScore, setReadinessScore] = useState(null);
+  const [roiResults, setRoiResults] = useState<any | null>(null);
+  const [readinessScore, setReadinessScore] = useState<any | null>(null);
 
   // Load or create use case on mount
   useEffect(() => {
@@ -386,8 +154,8 @@ export default function AgentPrep() {
   };
 
   const organizeStepsHierarchy = (flatSteps: any[]) => {
-    const stepMap = new Map();
-    const rootSteps = [];
+    const stepMap = new Map<string, any>();
+    const rootSteps: any[] = [];
     
     flatSteps.forEach(step => {
       stepMap.set(step.id, { ...step, substeps: [] });
@@ -482,9 +250,14 @@ export default function AgentPrep() {
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const pack = JSON.parse(event.target.result as string);
+        const fileContent = event.target?.result;
+        if (!fileContent) {
+          throw new Error('Unable to read use case file');
+        }
+
+        const pack = JSON.parse(fileContent as string);
         const result = await api.importUseCase(pack, ownerId);
-        
+
         alert('Use case imported successfully!');
         window.location.href = `?id=${result.id}`;
       } catch (err) {
