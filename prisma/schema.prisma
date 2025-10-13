@@ -1,0 +1,385 @@
+// Prisma Schema for AgentPrep
+// PostgreSQL Database Configuration
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================================
+// SIMLAB TABLES
+// ============================================================================
+
+model SimlabProject {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  ownerId     String   @map("owner_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+  metadata    Json     @default("{}") @db.JsonB
+
+  // Relations
+  nodes     SimlabNode[]
+  edges     SimlabEdge[]
+  scenarios SimlabScenario[]
+  runs      SimlabRun[]
+
+  @@index([ownerId], map: "idx_simlab_projects_owner")
+  @@index([createdAt(sort: Desc)], map: "idx_simlab_projects_created")
+  @@map("simlab_projects")
+}
+
+model SimlabNode {
+  id         String   @id @default(uuid()) @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  nodeType   String   @map("node_type") @db.VarChar(50)
+  label      String   @db.VarChar(255)
+  positionX  Decimal  @map("position_x") @db.Decimal(10, 2)
+  positionY  Decimal  @map("position_y") @db.Decimal(10, 2)
+
+  // Agent fields
+  model         String?   @db.VarChar(100)
+  systemPrompt  String?   @map("system_prompt") @db.Text
+  temperature   Decimal?  @db.Decimal(3, 2)
+  maxTokens     Int?      @map("max_tokens")
+  timeoutMs     Int?      @map("timeout_ms")
+  maxRetries    Int?      @map("max_retries")
+  memoryType    String?   @map("memory_type") @db.VarChar(50)
+  contextTags   String[]  @map("context_tags")
+
+  // Tool fields
+  connectorType  String?   @map("connector_type") @db.VarChar(50)
+  endpoint       String?   @db.Text
+  authType       String?   @map("auth_type") @db.VarChar(50)
+  rateLimit      String?   @map("rate_limit") @db.VarChar(50)
+  cacheStrategy  String?   @map("cache_strategy") @db.VarChar(50)
+  mode           String?   @db.VarChar(20)
+
+  // Router fields
+  routingStrategy  String?  @map("routing_strategy") @db.VarChar(50)
+  threshold        Decimal? @db.Decimal(3, 2)
+  fallbackBehavior String?  @map("fallback_behavior") @db.VarChar(50)
+
+  // Metrics
+  toolsCount    Int      @default(0) @map("tools_count")
+  policiesCount Int      @default(0) @map("policies_count")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  config    Json     @default("{}") @db.JsonB
+
+  // Relations
+  project       SimlabProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  edgesAsSource SimlabEdge[]  @relation("EdgeSource")
+  edgesAsTarget SimlabEdge[]  @relation("EdgeTarget")
+
+  @@index([projectId], map: "idx_simlab_nodes_project")
+  @@index([nodeType], map: "idx_simlab_nodes_type")
+  @@map("simlab_nodes")
+}
+
+model SimlabEdge {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @map("project_id") @db.Uuid
+  sourceNodeId String   @map("source_node_id") @db.Uuid
+  targetNodeId String   @map("target_node_id") @db.Uuid
+  sourcePoint  String?  @map("source_point") @db.VarChar(20)
+  targetPoint  String?  @map("target_point") @db.VarChar(20)
+  label        String?  @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  metadata     Json     @default("{}") @db.JsonB
+
+  // Relations
+  project    SimlabProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceNode SimlabNode    @relation("EdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode SimlabNode    @relation("EdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@index([projectId], map: "idx_simlab_edges_project")
+  @@index([sourceNodeId], map: "idx_simlab_edges_source")
+  @@index([targetNodeId], map: "idx_simlab_edges_target")
+  @@map("simlab_edges")
+}
+
+model SimlabScenario {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @map("project_id") @db.Uuid
+  name         String   @db.VarChar(255)
+  inputs       Json     @db.JsonB
+  seed         Int
+  maxLatencyMs Int?     @map("max_latency_ms")
+  maxCostUsd   Decimal? @map("max_cost_usd") @db.Decimal(10, 4)
+  policies     Json     @default("[]") @db.JsonB
+  costModel    Json     @map("cost_model") @db.JsonB
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  project SimlabProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runs    SimlabRun[]
+
+  @@index([projectId], map: "idx_simlab_scenarios_project")
+  @@map("simlab_scenarios")
+}
+
+model SimlabRun {
+  id         String    @id @default(uuid()) @db.Uuid
+  projectId  String    @map("project_id") @db.Uuid
+  scenarioId String    @map("scenario_id") @db.Uuid
+  status     String    @db.VarChar(50)
+  startedAt  DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  completedAt DateTime? @map("completed_at") @db.Timestamptz()
+
+  // Results
+  success         Boolean? @db.Boolean
+  successReason   String?  @map("success_reason") @db.Text
+  totalLatencyMs  Int?     @map("total_latency_ms")
+  p50LatencyMs    Int?     @map("p50_latency_ms")
+  p95LatencyMs    Int?     @map("p95_latency_ms")
+  totalTokens     Int?     @map("total_tokens")
+  promptTokens    Int?     @map("prompt_tokens")
+  completionTokens Int?    @map("completion_tokens")
+  totalCostUsd    Decimal? @map("total_cost_usd") @db.Decimal(10, 6)
+  policyViolations Json?   @map("policy_violations") @db.JsonB
+  reliabilityMetrics Json? @map("reliability_metrics") @db.JsonB
+  traces          Json?    @db.JsonB
+  perNodeMetrics  Json?    @map("per_node_metrics") @db.JsonB
+
+  // Relations
+  project  SimlabProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scenario SimlabScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@index([projectId], map: "idx_simlab_runs_project")
+  @@index([scenarioId], map: "idx_simlab_runs_scenario")
+  @@index([status], map: "idx_simlab_runs_status")
+  @@map("simlab_runs")
+}
+
+// ============================================================================
+// AGENTPREP TABLES
+// ============================================================================
+
+model AgentprepUseCase {
+  id        String    @id @db.VarChar(20)
+  name      String    @db.VarChar(255)
+  objective String    @db.Text
+  scope     String    @db.Text
+  sponsor   String?   @db.VarChar(255)
+  priority  String    @db.VarChar(20)
+  status    String    @db.VarChar(20)
+  tags      String[]
+  ownerId   String    @map("owner_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  roles        AgentprepRole[]
+  processSteps AgentprepProcessStep[]
+  dataAssets   AgentprepDataAsset[]
+  applications AgentprepApplication[]
+  rules        AgentprepRule[]
+  slas         AgentprepSLA[]
+  metrics      AgentprepMetrics?
+  roiResults   AgentprepROIResults?
+  readiness    AgentprepReadiness?
+
+  @@index([ownerId], map: "idx_agentprep_uc_owner")
+  @@index([status], map: "idx_agentprep_uc_status")
+  @@index([priority], map: "idx_agentprep_uc_priority")
+  @@map("agentprep_use_cases")
+}
+
+model AgentprepRole {
+  id         String   @id @default(uuid()) @db.Uuid
+  useCaseId  String   @map("use_case_id") @db.VarChar(20)
+  name       String   @db.VarChar(255)
+  type       String   @db.VarChar(50)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  useCase AgentprepUseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([useCaseId, name], map: "idx_agentprep_roles_unique")
+  @@index([useCaseId], map: "idx_agentprep_roles_use_case")
+  @@map("agentprep_roles")
+}
+
+model AgentprepProcessStep {
+  id             String    @id @default(uuid()) @db.Uuid
+  useCaseId      String    @map("use_case_id") @db.VarChar(20)
+  parentId       String?   @map("parent_id") @db.Uuid
+  type           String    @db.VarChar(50)
+  role           String    @db.VarChar(255)
+  title          String    @db.VarChar(255)
+  description    String?   @db.Text
+  level          Int
+  orderIndex     Int       @map("order_index")
+  path           String?   @db.VarChar(50)
+  executionMode  String    @default("sequential") @map("execution_mode") @db.VarChar(20)
+  avgTimeMinutes Decimal?  @map("avg_time_minutes") @db.Decimal(10, 2)
+  volumePerDay   Int?      @map("volume_per_day")
+  exceptionRate  Decimal?  @map("exception_rate") @db.Decimal(5, 4)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  metadata       Json      @default("{}") @db.JsonB
+
+  // Relations
+  useCase  AgentprepUseCase       @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  parent   AgentprepProcessStep?  @relation("StepHierarchy", fields: [parentId], references: [id])
+  children AgentprepProcessStep[] @relation("StepHierarchy")
+
+  @@index([useCaseId], map: "idx_agentprep_steps_use_case")
+  @@index([parentId], map: "idx_agentprep_steps_parent")
+  @@index([level], map: "idx_agentprep_steps_level")
+  @@index([orderIndex], map: "idx_agentprep_steps_order")
+  @@map("agentprep_process_steps")
+}
+
+model AgentprepDataAsset {
+  id           String   @id @default(uuid()) @db.Uuid
+  useCaseId    String   @map("use_case_id") @db.VarChar(20)
+  name         String   @db.VarChar(255)
+  system       String   @db.VarChar(255)
+  objectType   String   @map("object_type") @db.VarChar(50)
+  hasPii       Boolean  @default(false) @map("has_pii")
+  qualityScore Int?     @map("quality_score")
+  fields       Json     @default("[]") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  metadata     Json     @default("{}") @db.JsonB
+
+  // Relations
+  useCase AgentprepUseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@index([useCaseId], map: "idx_agentprep_assets_use_case")
+  @@index([hasPii], map: "idx_agentprep_assets_pii")
+  @@map("agentprep_data_assets")
+}
+
+model AgentprepApplication {
+  id        String   @id @default(uuid()) @db.Uuid
+  useCaseId String   @map("use_case_id") @db.VarChar(20)
+  name      String   @db.VarChar(255)
+  type      String   @db.VarChar(50)
+  vendor    String?  @db.VarChar(255)
+  authType  String?  @map("auth_type") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  config    Json     @default("{}") @db.JsonB
+
+  // Relations
+  useCase    AgentprepUseCase      @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  connectors AgentprepConnector[]
+
+  @@index([useCaseId], map: "idx_agentprep_apps_use_case")
+  @@index([type], map: "idx_agentprep_apps_type")
+  @@map("agentprep_applications")
+}
+
+model AgentprepConnector {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  name          String   @db.VarChar(255)
+  connectorType String   @map("connector_type") @db.VarChar(50)
+  endpoint      String?  @db.Text
+  timeoutMs     Int?     @map("timeout_ms")
+  maxRetries    Int?     @map("max_retries")
+  rateLimit     String?  @map("rate_limit") @db.VarChar(50)
+  cacheStrategy String?  @map("cache_strategy") @db.VarChar(50)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  config        Json     @default("{}") @db.JsonB
+
+  // Relations
+  application AgentprepApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId], map: "idx_agentprep_connectors_app")
+  @@map("agentprep_connectors")
+}
+
+model AgentprepRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  useCaseId   String   @map("use_case_id") @db.VarChar(20)
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  category    String   @db.VarChar(50)
+  expression  String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  metadata    Json     @default("{}") @db.JsonB
+
+  // Relations
+  useCase AgentprepUseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@index([useCaseId], map: "idx_agentprep_rules_use_case")
+  @@index([category], map: "idx_agentprep_rules_category")
+  @@map("agentprep_rules")
+}
+
+model AgentprepSLA {
+  id                 String   @id @default(uuid()) @db.Uuid
+  useCaseId          String   @map("use_case_id") @db.VarChar(20)
+  metric             String   @db.VarChar(255)
+  threshold          String   @db.VarChar(100)
+  unit               String   @db.VarChar(50)
+  measurementWindow  String?  @map("measurement_window") @db.VarChar(50)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  useCase AgentprepUseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@index([useCaseId], map: "idx_agentprep_slas_use_case")
+  @@map("agentprep_slas")
+}
+
+model AgentprepMetrics {
+  useCaseId              String   @id @map("use_case_id") @db.VarChar(20)
+  baselineVolume         Int      @map("baseline_volume")
+  avgHandlingTimeMinutes Decimal  @map("avg_handling_time_minutes") @db.Decimal(10, 2)
+  fteCostPerHour         Decimal  @map("fte_cost_per_hour") @db.Decimal(10, 2)
+  errorRate              Decimal  @map("error_rate") @db.Decimal(5, 4)
+  breachCostUsd          Decimal  @map("breach_cost_usd") @db.Decimal(10, 2)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  useCase AgentprepUseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@map("agentprep_metrics")
+}
+
+model AgentprepROIResults {
+  useCaseId            String   @id @map("use_case_id") @db.VarChar(20)
+  currentAnnualCostUsd Decimal  @map("current_annual_cost_usd") @db.Decimal(12, 2)
+  futureAnnualCostUsd  Decimal  @map("future_annual_cost_usd") @db.Decimal(12, 2)
+  annualSavingsUsd     Decimal  @map("annual_savings_usd") @db.Decimal(12, 2)
+  paybackMonths        Decimal  @map("payback_months") @db.Decimal(5, 1)
+  threeYearValueUsd    Decimal  @map("three_year_value_usd") @db.Decimal(12, 2)
+  confidenceScore      Decimal  @map("confidence_score") @db.Decimal(3, 2)
+  calculatedAt         DateTime @default(now()) @map("calculated_at") @db.Timestamptz()
+
+  // Relations
+  useCase AgentprepUseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@map("agentprep_roi_results")
+}
+
+model AgentprepReadiness {
+  useCaseId         String   @id @map("use_case_id") @db.VarChar(20)
+  overallScore      Decimal  @map("overall_score") @db.Decimal(3, 1)
+  automationFitScore Int     @map("automation_fit_score")
+  apiMaturity       Decimal  @map("api_maturity") @db.Decimal(3, 1)
+  dataQuality       Decimal  @map("data_quality") @db.Decimal(3, 1)
+  ruleClarity       Decimal  @map("rule_clarity") @db.Decimal(3, 1)
+  exceptionRate     Decimal  @map("exception_rate") @db.Decimal(3, 1)
+  volumeStability   Decimal  @map("volume_stability") @db.Decimal(3, 1)
+  securityPosture   Decimal  @map("security_posture") @db.Decimal(3, 1)
+  calculatedAt      DateTime @default(now()) @map("calculated_at") @db.Timestamptz()
+
+  // Relations
+  useCase AgentprepUseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@map("agentprep_readiness")
+}
