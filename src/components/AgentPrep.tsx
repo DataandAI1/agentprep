@@ -318,7 +318,6 @@ export default function AgentPrep() {
         tags: []
       });
       setUseCase(newUseCase);
-      // Update URL
       window.history.pushState({}, '', `?id=${newUseCase.id}`);
     } catch (err) {
       setError('Failed to create use case');
@@ -333,7 +332,6 @@ export default function AgentPrep() {
       setLoading(true);
       setError(null);
       
-      // Load all data in parallel
       const [
         useCaseData,
         rolesData,
@@ -378,7 +376,6 @@ export default function AgentPrep() {
       
       setRoiResults(roiData);
       setReadinessScore(readinessData);
-      
       setLastSaved(new Date());
     } catch (err) {
       setError('Failed to load use case');
@@ -388,17 +385,14 @@ export default function AgentPrep() {
     }
   };
 
-  // Organize flat steps into hierarchy
   const organizeStepsHierarchy = (flatSteps: any[]) => {
     const stepMap = new Map();
     const rootSteps = [];
     
-    // First pass: create map
     flatSteps.forEach(step => {
       stepMap.set(step.id, { ...step, substeps: [] });
     });
     
-    // Second pass: build hierarchy
     flatSteps.forEach(step => {
       const stepWithChildren = stepMap.get(step.id);
       if (step.parent_id) {
@@ -414,7 +408,6 @@ export default function AgentPrep() {
     return rootSteps;
   };
 
-  // Auto-save functionality
   useEffect(() => {
     if (!useCase.id || !unsavedChanges) return;
     
@@ -453,7 +446,6 @@ export default function AgentPrep() {
     setUnsavedChanges(true);
   };
 
-  // Navigation sections with completion tracking
   const sections = [
     { id: 'overview', label: 'Overview', icon: FileText, complete: useCase.name && useCase.objective && useCase.scope },
     { id: 'steps', label: 'Process Steps', icon: Activity, complete: processSteps.length >= 3 },
@@ -494,7 +486,6 @@ export default function AgentPrep() {
         const result = await api.importUseCase(pack, ownerId);
         
         alert('Use case imported successfully!');
-        // Reload the imported use case
         window.location.href = `?id=${result.id}`;
       } catch (err) {
         alert('Invalid use case file or import failed');
@@ -540,7 +531,6 @@ export default function AgentPrep() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Top Bar */}
       <div className="h-14 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex items-center justify-between px-4 shadow-lg">
         <div className="flex items-center gap-3">
           <div className="text-xl font-bold">AgentPrep</div>
@@ -572,7 +562,6 @@ export default function AgentPrep() {
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="h-2 bg-gray-200">
         <div 
           className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-500"
@@ -580,9 +569,7 @@ export default function AgentPrep() {
         />
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
         <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden`}>
           <div className="flex items-center justify-between p-3 border-b border-gray-200">
             <div className="font-semibold text-gray-700">Sections</div>
@@ -634,7 +621,6 @@ export default function AgentPrep() {
           </button>
         )}
 
-        {/* Content Area - Placeholder sections */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-5xl mx-auto p-6">
             {activeSection === 'overview' && (
@@ -645,46 +631,61 @@ export default function AgentPrep() {
               />
             )}
             {activeSection === 'steps' && (
-              <div className="text-center py-12">
-                <Activity className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
-                <h2 className="text-2xl font-bold mb-2">Process Steps Section</h2>
-                <p className="text-gray-600">Map out the workflow from trigger to completion</p>
-              </div>
+              <StepsSection 
+                useCaseId={useCase.id}
+                processSteps={processSteps}
+                setProcessSteps={setProcessSteps}
+                roles={roles}
+                setRoles={setRoles}
+                markDirty={markDirty}
+              />
             )}
             {activeSection === 'data' && (
-              <div className="text-center py-12">
-                <Database className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
-                <h2 className="text-2xl font-bold mb-2">Data Assets Section</h2>
-                <p className="text-gray-600">Identify data objects and fields</p>
-              </div>
+              <DataSection 
+                useCaseId={useCase.id}
+                dataAssets={dataAssets}
+                setDataAssets={setDataAssets}
+                markDirty={markDirty}
+              />
             )}
             {activeSection === 'apps' && (
-              <div className="text-center py-12">
-                <Settings className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
-                <h2 className="text-2xl font-bold mb-2">Apps & Connectors Section</h2>
-                <p className="text-gray-600">Catalog systems and APIs</p>
-              </div>
+              <AppsSection 
+                useCaseId={useCase.id}
+                applications={applications}
+                setApplications={setApplications}
+                connectors={connectors}
+                setConnectors={setConnectors}
+                markDirty={markDirty}
+              />
             )}
             {activeSection === 'rules' && (
-              <div className="text-center py-12">
-                <Shield className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
-                <h2 className="text-2xl font-bold mb-2">Rules & SLAs Section</h2>
-                <p className="text-gray-600">Define business rules and service levels</p>
-              </div>
+              <RulesSection 
+                useCaseId={useCase.id}
+                rules={rules}
+                setRules={setRules}
+                slas={slas}
+                setSlas={setSlas}
+                markDirty={markDirty}
+              />
             )}
             {activeSection === 'metrics' && (
-              <div className="text-center py-12">
-                <DollarSign className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
-                <h2 className="text-2xl font-bold mb-2">Metrics & ROI Section</h2>
-                <p className="text-gray-600">Quantify impact and expected value</p>
-              </div>
+              <MetricsSection 
+                useCaseId={useCase.id}
+                metrics={metrics}
+                setMetrics={setMetrics}
+                roiResults={roiResults}
+                setRoiResults={setRoiResults}
+                markDirty={markDirty}
+              />
             )}
             {activeSection === 'review' && (
-              <div className="text-center py-12">
-                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
-                <h2 className="text-2xl font-bold mb-2">Review & Publish Section</h2>
-                <p className="text-gray-600">Check completeness and export</p>
-              </div>
+              <ReviewSection 
+                useCase={useCase}
+                sections={sections}
+                readinessScore={readinessScore}
+                roiResults={roiResults}
+                onExport={exportUseCasePack}
+              />
             )}
           </div>
         </div>
