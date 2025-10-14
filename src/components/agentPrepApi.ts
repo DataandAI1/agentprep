@@ -143,6 +143,32 @@ export const api = {
     if (!res.ok) throw new Error('Failed to delete application');
   },
 
+  // Connectors
+  listConnectors: async (useCaseId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/connectors`);
+    if (!res.ok) throw new Error('Failed to fetch connectors');
+    return res.json();
+  },
+
+  createConnector: async (useCaseId: string, data: any) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/connectors`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create connector');
+    return res.json();
+  },
+
+  deleteConnector: async (useCaseId: string, connectorId: string) => {
+    const res = await fetch(`${API_BASE}/${useCaseId}/connectors`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connectorId }),
+    });
+    if (!res.ok) throw new Error('Failed to delete connector');
+  },
+
   // Rules
   listRules: async (useCaseId: string) => {
     const res = await fetch(`${API_BASE}/${useCaseId}/rules`);
