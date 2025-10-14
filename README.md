@@ -1,6 +1,6 @@
 # AgentPrep - Use Case Collector for Agentic AI
 
-A comprehensive tool for capturing, analyzing, and exporting automation opportunities for agentic AI systems. Built with React, TypeScript, Firebase, and Tailwind CSS.
+A comprehensive tool for capturing, analyzing, and exporting automation opportunities for agentic AI systems. Built with React, TypeScript, Firebase/PostgreSQL, and Tailwind CSS.
 
 ## 🚀 Features
 
@@ -12,12 +12,14 @@ A comprehensive tool for capturing, analyzing, and exporting automation opportun
 - **ROI Calculator**: Automated financial impact analysis
 - **Readiness Assessment**: Score automation feasibility
 - **Export Functionality**: Generate complete use case packs for agent design
+- **SimLab Integration**: Multi-agent system simulation and testing
 
 ## 📋 Prerequisites
 
 - Node.js 18+ 
 - npm or yarn
-- Firebase account (free tier works)
+- PostgreSQL database (local or cloud) OR Firebase account
+- Git
 
 ## 🛠️ Installation
 
@@ -32,7 +34,30 @@ cd agentprep
 npm install
 ```
 
-3. Set up Firebase:
+3. Choose your database backend:
+   - **Option A: PostgreSQL with Prisma** (recommended for production)
+   - **Option B: Firebase/Firestore** (good for prototyping)
+
+### Option A: PostgreSQL Setup
+
+4a. Configure database:
+```bash
+cp .env.example .env
+# Edit .env with your DATABASE_URL
+```
+
+5a. Initialize database:
+```bash
+npm run db:push      # Push schema to database
+npm run db:seed      # Add sample data (optional)
+npm run db:studio    # Open database browser
+```
+
+See [DATABASE_SETUP.md](docs/DATABASE_SETUP.md) for detailed instructions.
+
+### Option B: Firebase Setup
+
+4b. Set up Firebase:
 ```bash
 # Install Firebase CLI if not already installed
 npm install -g firebase-tools
@@ -44,15 +69,65 @@ firebase login
 firebase init
 ```
 
-4. Configure environment variables:
+5b. Configure environment variables:
 ```bash
 cp .env.example .env.local
 # Edit .env.local with your Firebase configuration
 ```
 
+## 🗄️ Database Architecture
+
+### PostgreSQL Schema (Prisma)
+
+The application uses PostgreSQL with Prisma ORM for production deployments:
+
+**SimLab Tables** - Multi-agent system simulation:
+- `simlab_projects` - Agent system projects
+- `simlab_nodes` - Agent, tool, and router nodes
+- `simlab_edges` - Node connections
+- `simlab_scenarios` - Test scenarios
+- `simlab_runs` - Execution results and metrics
+
+**AgentPrep Tables** - Use case analysis:
+- `agentprep_use_cases` - Business use cases
+- `agentprep_roles` - Stakeholder roles
+- `agentprep_process_steps` - Process hierarchies
+- `agentprep_data_assets` - Data sources and quality
+- `agentprep_applications` - Connected systems
+- `agentprep_connectors` - API integrations
+- `agentprep_rules` - Business rules
+- `agentprep_slas` - Service level agreements
+- `agentprep_metrics` - Performance metrics
+- `agentprep_roi_results` - ROI calculations
+- `agentprep_readiness` - Automation readiness scores
+
+See the [Prisma README](prisma/README.md) for quick reference.
+
+### Database Commands
+
+```bash
+# Generate Prisma Client
+npm run db:generate
+
+# Push schema changes
+npm run db:push
+
+# Create migration
+npm run db:migrate
+
+# Seed sample data
+npm run db:seed
+
+# Open database browser
+npm run db:studio
+
+# Format schema
+npm run db:format
+```
+
 ## 🔧 Configuration
 
-### Firebase Setup
+### Firebase Setup (Alternative)
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Create a new project (or use existing)
@@ -61,20 +136,42 @@ cp .env.example .env.local
 5. Get your config from Project Settings > General
 6. Update `.env.local` with your Firebase credentials
 
+### Supported Database Providers
+
+- **Local**: PostgreSQL with Docker
+- **Supabase**: Free tier available
+- **Railway**: One-click PostgreSQL
+- **Neon**: Serverless PostgreSQL
+- **Heroku Postgres**: Managed PostgreSQL
+- **Firebase/Firestore**: NoSQL alternative
+
 ### Project Structure
 
 ```
 agentprep/
+├── docs/                # Documentation
+│   └── DATABASE_SETUP.md   # Complete database setup guide
+├── prisma/              # Database schema and migrations
+│   ├── schema.prisma    # Prisma schema definition
+│   ├── seed.ts         # Database seeding script
+│   └── README.md       # Prisma quick reference
 ├── public/              # Static assets
 ├── src/
 │   ├── components/      # React components
-│   ├── firebase/        # Firebase configuration and services
+│   ├── firebase/        # Firebase configuration (if using)
+│   ├── lib/
+│   │   ├── prisma.ts   # Prisma client singleton
+│   │   └── db/         # Database utilities
+│   │       ├── queries.ts  # Reusable queries
+│   │       └── types.ts    # Type utilities
 │   ├── types/          # TypeScript type definitions
 │   ├── App.tsx         # Main application component
 │   └── main.tsx        # Application entry point
-├── firestore.rules     # Firestore security rules
-├── firestore.indexes.json  # Firestore index definitions
-└── firebase.json       # Firebase configuration
+├── .env.example        # Environment variables template
+├── firestore.rules     # Firestore security rules (if using Firebase)
+├── firestore.indexes.json  # Firestore indexes (if using Firebase)
+├── firebase.json       # Firebase configuration (if using Firebase)
+└── package.json        # Dependencies and scripts
 ```
 
 ## 🚦 Usage
@@ -86,9 +183,9 @@ Start the development server:
 npm run dev
 ```
 
-The application will open at `http://localhost:3000`
+The application will open at `http://localhost:5173`
 
-### Using Firebase Emulators (Recommended for Development)
+### Using Firebase Emulators (if using Firebase)
 
 ```bash
 npm run firebase:emulators
@@ -132,18 +229,30 @@ firebase deploy
 6. **Metrics**: Input baseline operational metrics
 7. **Review**: View completion status, readiness score, and ROI projections
 
+### Using the Database Utilities
+
+```typescript
+import { agentprepQueries, simlabQueries } from '@/lib/db/queries'
+
+// Get all use cases for a user
+const useCases = await agentprepQueries.getUseCases(userId)
+
+// Get complete use case with all relations
+const useCase = await agentprepQueries.getUseCaseComplete('UC-001')
+
+// Get SimLab projects
+const projects = await simlabQueries.getProjects(userId)
+
+// Get project with full graph
+const project = await simlabQueries.getProjectWithGraph(projectId)
+```
+
+See [queries.ts](src/lib/db/queries.ts) for all available helper functions.
+
 ### Data Model
 
-See `src/types/index.ts` for complete TypeScript type definitions.
-
-Key collections in Firestore:
-- `useCases` - Top-level use case documents
-- `useCases/{id}/roles` - Process roles/lanes
-- `useCases/{id}/processSteps` - Hierarchical process steps
-- `useCases/{id}/dataAssets` - Data source catalog
-- `useCases/{id}/applications` - Systems and tools
-- `useCases/{id}/rules` - Business rules
-- `useCases/{id}/slas` - Service level agreements
+See `src/types/index.ts` for Firebase type definitions.  
+See `src/lib/db/types.ts` for Prisma type utilities.
 
 ### Export Format
 
@@ -170,6 +279,13 @@ Use cases export as JSON with the following structure:
 
 ## 🔒 Security
 
+### PostgreSQL Security
+- Connection strings stored in `.env` (not committed to git)
+- Row-level security through application layer
+- Prepared statements prevent SQL injection
+- Database credentials rotated regularly
+
+### Firebase Security
 Firestore security rules ensure:
 - Users can only access their own use cases
 - All operations require authentication (when enabled)
@@ -189,8 +305,9 @@ This project is open source and available under the MIT License.
 
 - Built with React and TypeScript
 - Styled with Tailwind CSS
-- Backend powered by Firebase
+- Backend powered by PostgreSQL (Prisma) or Firebase
 - Icons by Lucide React
+- Database ORM by Prisma
 
 ## 📞 Support
 
@@ -198,12 +315,21 @@ For issues and questions, please use the GitHub Issues page.
 
 ## 🗺️ Roadmap
 
+- [x] PostgreSQL database support with Prisma
+- [x] SimLab integration for agent system simulation
 - [ ] Multi-user collaboration
 - [ ] Real-time sync across devices
 - [ ] AI-powered suggestion engine
-- [ ] Integration with SimLab for agent design
 - [ ] Template library for common use cases
 - [ ] Advanced analytics dashboard
+- [ ] GraphQL API layer
+
+## 📖 Additional Resources
+
+- [Database Setup Guide](docs/DATABASE_SETUP.md) - Complete PostgreSQL setup instructions
+- [Prisma Quick Reference](prisma/README.md) - Common database commands
+- [Query Examples](src/lib/db/queries.ts) - Pre-built database queries
+- [Type Utilities](src/lib/db/types.ts) - TypeScript helpers
 
 ---
 
