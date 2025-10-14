@@ -95,16 +95,27 @@ export const simlabQueries = {
     })
 
     const totalRuns = runs.length
+
+    if (totalRuns === 0) {
+      return {
+        totalRuns: 0,
+        successRate: 0,
+        avgLatencyMs: 0,
+        avgCostUsd: 0,
+        totalTokens: 0
+      }
+    }
+
     const successfulRuns = runs.filter(r => r.success).length
-    const avgLatency = runs.reduce((sum, r) => sum + (r.totalLatencyMs || 0), 0) / totalRuns
-    const avgCost = runs.reduce((sum, r) => sum + Number(r.totalCostUsd || 0), 0) / totalRuns
+    const totalLatency = runs.reduce((sum, r) => sum + (r.totalLatencyMs || 0), 0)
+    const totalCost = runs.reduce((sum, r) => sum + Number(r.totalCostUsd || 0), 0)
     const totalTokens = runs.reduce((sum, r) => sum + (r.totalTokens || 0), 0)
 
     return {
       totalRuns,
-      successRate: totalRuns > 0 ? successfulRuns / totalRuns : 0,
-      avgLatencyMs: Math.round(avgLatency),
-      avgCostUsd: avgCost,
+      successRate: successfulRuns / totalRuns,
+      avgLatencyMs: Math.round(totalLatency / totalRuns),
+      avgCostUsd: totalCost / totalRuns,
       totalTokens
     }
   },

@@ -17,8 +17,12 @@ import {
 import { StepsSection, DataSection, AppsSection, RulesSection, MetricsSection, ReviewSection } from './AgentPrepSections';
 import { api } from './agentPrepApi';
 
+type AgentPrepProps = {
+  ownerId: string;
+};
+
 // Main Application Component
-export default function AgentPrep() {
+export default function AgentPrep({ ownerId }: AgentPrepProps) {
   const [activeSection, setActiveSection] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -26,9 +30,6 @@ export default function AgentPrep() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  // User/Owner ID - in production, get from auth
-  const ownerId = 'default-user'; // TODO: Replace with actual auth
 
   // Core use case data
   const [useCase, setUseCase] = useState({
@@ -62,6 +63,10 @@ export default function AgentPrep() {
   const [roiResults, setRoiResults] = useState<any | null>(null);
   const [readinessScore, setReadinessScore] = useState<any | null>(null);
 
+  useEffect(() => {
+    setUseCase(prev => ({ ...prev, owner_id: ownerId }));
+  }, [ownerId]);
+
   // Load or create use case on mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -72,7 +77,7 @@ export default function AgentPrep() {
     } else {
       createNewUseCase();
     }
-  }, []);
+  }, [ownerId]);
 
   const createNewUseCase = async () => {
     try {
@@ -86,6 +91,7 @@ export default function AgentPrep() {
         tags: []
       });
       setUseCase(newUseCase);
+      setConnectors([]);
       window.history.pushState({}, '', `?id=${newUseCase.id}`);
     } catch (err) {
       setError('Failed to create use case');
@@ -110,7 +116,8 @@ export default function AgentPrep() {
         slasData,
         metricsData,
         roiData,
-        readinessData
+        readinessData,
+        connectorsData
       ] = await Promise.all([
         api.getUseCase(id),
         api.listRoles(id),
@@ -121,7 +128,8 @@ export default function AgentPrep() {
         api.listSLAs(id),
         api.getMetrics(id),
         api.getROI(id),
-        api.getReadiness(id)
+        api.getReadiness(id),
+        api.listConnectors(id)
       ]);
       
       setUseCase(useCaseData);
@@ -129,6 +137,7 @@ export default function AgentPrep() {
       setProcessSteps(organizeStepsHierarchy(stepsData));
       setDataAssets(assetsData);
       setApplications(appsData);
+      setConnectors(connectorsData);
       setRules(rulesData);
       setSlas(slasData);
       
