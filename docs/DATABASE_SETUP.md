@@ -82,7 +82,13 @@ This populates your database with sample data for testing.
 
 ### 5. Verify Setup
 
-Open Prisma Studio to browse your database:
+Run the automated connection check to validate your environment variables and database connectivity:
+
+```bash
+npm run db:verify
+```
+
+Then open Prisma Studio to browse your database:
 
 ```bash
 npm run db:studio

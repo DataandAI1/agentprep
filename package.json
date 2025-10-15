@@ -16,6 +16,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "db:verify": "tsx prisma/verify.ts",
     "db:reset": "prisma migrate reset",
     "db:format": "prisma format",
     "postinstall": "prisma generate"
