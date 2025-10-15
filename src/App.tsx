@@ -91,7 +91,7 @@ function App() {
         name: trimmedName || 'Untitled Project',
         objective: '',
         scope: '',
-        owner_id: ownerId,
+        ownerId,
         priority: 'medium',
         tags: [],
       });
