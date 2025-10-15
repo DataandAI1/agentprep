@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const AIIndicator = () => {
   const [config, setConfig] = useState<any>(null);
@@ -10,9 +10,9 @@ const AIIndicator = () => {
         setConfig(JSON.parse(saved));
       }
     };
-    
+
     loadConfig();
-    
+
     // Listen for config changes
     window.addEventListener('storage', loadConfig);
     return () => window.removeEventListener('storage', loadConfig);
