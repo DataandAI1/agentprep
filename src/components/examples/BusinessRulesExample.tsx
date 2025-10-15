@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Loader, CheckCircle, FileText, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Sparkles, Loader, CheckCircle, FileText } from 'lucide-react';
 import { llmService } from '../../services/llm-service';
 
 /**

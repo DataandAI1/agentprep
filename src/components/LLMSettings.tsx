@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Save, TestTube, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 const LLMSettings = () => {

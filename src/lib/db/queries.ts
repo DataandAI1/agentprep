@@ -385,7 +385,7 @@ export const dbUtils = {
   /**
    * Soft delete a record
    */
-  async softDelete<T extends { deletedAt?: Date | null }>(
+  async softDelete(
     model: any,
     id: string
   ) {
@@ -408,7 +408,7 @@ export const dbUtils = {
   /**
    * Get paginated results
    */
-  async paginate<T>({
+  async paginate({
     model,
     where = {},
     orderBy = {},

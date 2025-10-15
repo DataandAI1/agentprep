@@ -10,7 +10,7 @@ import {
   where,
   orderBy,
   Timestamp,
-  writeBatch,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from './config';
 import type {
@@ -112,10 +112,14 @@ export const slaService = createSubcollectionService<SLA>('slas');
 export const metricsService = {
   async save(useCaseId: string, data: Partial<Metrics>) {
     const docRef = doc(db, 'useCases', useCaseId, 'metrics', 'current');
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: Timestamp.now(),
-    });
+    await setDoc(
+      docRef,
+      {
+        ...data,
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true }
+    );
   },
 
   async get(useCaseId: string) {
