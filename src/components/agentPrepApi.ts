@@ -1,12 +1,31 @@
 const API_BASE = '/api/use-cases';
 
+const withOwnerAliases = (data: any) => {
+  if (!data || (typeof data !== 'object')) {
+    return data;
+  }
+
+  const ownerValue = 'ownerId' in data ? data.ownerId : data.owner_id;
+
+  if (!ownerValue) {
+    return data;
+  }
+
+  return {
+    ...data,
+    ownerId: ownerValue,
+    owner_id: ownerValue,
+  };
+};
+
 export const api = {
   // Use Cases
   createUseCase: async (data: any) => {
+    const payload = withOwnerAliases(data);
     const res = await fetch(`${API_BASE}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Failed to create use case');
     return res.json();
@@ -257,10 +276,11 @@ export const api = {
   },
 
   importUseCase: async (pack: any, ownerId: string) => {
+    const payload = withOwnerAliases({ pack, ownerId });
     const res = await fetch(`${API_BASE}/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pack, owner_id: ownerId }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Failed to import use case');
     return res.json();

@@ -42,7 +42,7 @@ export default function AgentPrep({ ownerId, useCaseId }: AgentPrepProps) {
     priority: 'medium',
     status: 'draft',
     tags: [],
-    owner_id: ownerId,
+    ownerId,
     created_at: new Date().toISOString()
   });
 
@@ -65,7 +65,7 @@ export default function AgentPrep({ ownerId, useCaseId }: AgentPrepProps) {
   const [readinessScore, setReadinessScore] = useState<any | null>(null);
 
   useEffect(() => {
-    setUseCase(prev => ({ ...prev, owner_id: ownerId }));
+    setUseCase(prev => ({ ...prev, ownerId }));
   }, [ownerId]);
 
   useEffect(() => {
@@ -134,7 +134,18 @@ export default function AgentPrep({ ownerId, useCaseId }: AgentPrepProps) {
         api.listConnectors(id)
       ]);
       
-      setUseCase(useCaseData);
+      if (useCaseData) {
+        const { owner_id, ...rest } = useCaseData as Record<string, any>;
+        const normalizedUseCase = {
+          ...rest,
+          ownerId: useCaseData.ownerId ?? owner_id ?? ownerId
+        };
+
+        setUseCase(prev => ({
+          ...prev,
+          ...normalizedUseCase
+        }));
+      }
       setRoles(rolesData);
       setProcessSteps(organizeStepsHierarchy(stepsData));
       setDataAssets(assetsData);
