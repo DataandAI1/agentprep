@@ -19,10 +19,11 @@ import { api } from './agentPrepApi';
 
 type AgentPrepProps = {
   ownerId: string;
+  useCaseId: string;
 };
 
 // Main Application Component
-export default function AgentPrep({ ownerId }: AgentPrepProps) {
+export default function AgentPrep({ ownerId, useCaseId }: AgentPrepProps) {
   const [activeSection, setActiveSection] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -67,45 +68,46 @@ export default function AgentPrep({ ownerId }: AgentPrepProps) {
     setUseCase(prev => ({ ...prev, owner_id: ownerId }));
   }, [ownerId]);
 
-  // Load or create use case on mount
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const useCaseId = urlParams.get('id');
-    
-    if (useCaseId) {
-      loadUseCase(useCaseId);
-    } else {
-      createNewUseCase();
-    }
-  }, [ownerId]);
+    if (!useCaseId) return;
 
-  const createNewUseCase = async () => {
-    try {
-      setLoading(true);
-      const newUseCase = await api.createUseCase({
-        name: '',
-        objective: '',
-        scope: '',
-        owner_id: ownerId,
-        priority: 'medium',
-        tags: []
-      });
-      setUseCase(newUseCase);
-      setConnectors([]);
-      window.history.pushState({}, '', `?id=${newUseCase.id}`);
-    } catch (err) {
-      setError('Failed to create use case');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadUseCase(useCaseId);
+  }, [useCaseId]);
+
+  useEffect(() => {
+    if (!useCaseId) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('id', useCaseId);
+    window.history.replaceState({}, '', url.toString());
+  }, [useCaseId]);
 
   const loadUseCase = async (id: string) => {
     try {
       setLoading(true);
       setError(null);
-      
+
+      setUseCase(prev => ({
+        ...prev,
+        id,
+      }));
+      setRoles([]);
+      setProcessSteps([]);
+      setDataAssets([]);
+      setApplications([]);
+      setConnectors([]);
+      setRules([]);
+      setSlas([]);
+      setMetrics({
+        baselineVolume: 0,
+        avgHandlingTime: 0,
+        fteCost: 0,
+        errorRate: 0,
+        breachCost: 0
+      });
+      setRoiResults(null);
+      setReadinessScore(null);
+
       const [
         useCaseData,
         rolesData,
