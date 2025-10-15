@@ -17,6 +17,9 @@ npm run db:generate
 # Push schema changes (no migration files)
 npm run db:push
 
+# Verify database connectivity and environment variables
+npm run db:verify
+
 # Open database browser
 npm run db:studio
 
