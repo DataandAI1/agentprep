@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "function": "usecases"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
