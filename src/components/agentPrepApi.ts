@@ -34,14 +34,6 @@ const withOwnerAliases = (data: any) => {
   };
 };
 
-export const api = {
-  // Use Cases
-  createUseCase: async (data: any) => {
-    const payload = withOwnerAliases(data);
-    const res = await fetch(`${API_BASE}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
 type LocalStore = Record<string, LocalUseCaseRecord>;
 
 let inMemoryStore: LocalStore = {};
@@ -871,76 +863,6 @@ export const api = {
     ),
 
   // SLAs
-  listSLAs: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/slas`);
-    if (!res.ok) throw new Error('Failed to fetch SLAs');
-    return res.json();
-  },
-
-  createSLA: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/slas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to create SLA');
-    return res.json();
-  },
-
-  deleteSLA: async (useCaseId: string, slaId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/slas`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slaId }),
-    });
-    if (!res.ok) throw new Error('Failed to delete SLA');
-  },
-
-  // Metrics
-  getMetrics: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/metrics`);
-    if (!res.ok) return null;
-    return res.json();
-  },
-
-  updateMetrics: async (useCaseId: string, data: any) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/metrics`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to update metrics');
-    return res.json();
-  },
-
-  getROI: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/roi`);
-    if (!res.ok) return null;
-    return res.json();
-  },
-
-  getReadiness: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/readiness`);
-    if (!res.ok) return null;
-    return res.json();
-  },
-
-  exportUseCase: async (useCaseId: string) => {
-    const res = await fetch(`${API_BASE}/${useCaseId}/export`);
-    if (!res.ok) throw new Error('Failed to export use case');
-    return res.json();
-  },
-
-  importUseCase: async (pack: any, ownerId: string) => {
-    const payload = withOwnerAliases({ pack, ownerId });
-    const res = await fetch(`${API_BASE}/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error('Failed to import use case');
-    return res.json();
-  },
   listSLAs: async (useCaseId: string) =>
     callWithFallback(
       () => fetchWithHandling(`${API_BASE}/${useCaseId}/slas`),
