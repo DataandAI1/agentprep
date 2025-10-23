@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import AgentPrep from './components/AgentPrep';
 import { api } from './components/agentPrepApi';
+import { loadDemoProject } from './demo/loadDemo';
 
 type UseCaseSummary = {
   id: string;
@@ -11,6 +12,7 @@ type UseCaseSummary = {
 };
 
 const OWNER_STORAGE_KEY = 'agentprep-owner-id';
+const DEMO_LOADED_KEY = 'agentprep-demo-loaded';
 
 function App() {
   const [ownerId, setOwnerId] = useState<string | null>(null);
@@ -23,6 +25,7 @@ function App() {
   const [creatingProject, setCreatingProject] = useState(false);
   const [lookupProjectId, setLookupProjectId] = useState('');
   const [lookingUpProject, setLookingUpProject] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -53,6 +56,29 @@ function App() {
     }
   }, []);
 
+  const loadDemo = useCallback(async (currentOwnerId: string) => {
+    if (typeof window === 'undefined') return;
+    
+    // Check if demo was already loaded
+    const demoLoaded = window.localStorage.getItem(DEMO_LOADED_KEY);
+    if (demoLoaded) return;
+
+    setLoadingDemo(true);
+    try {
+      console.log('Loading demo project for first-time user...');
+      await loadDemoProject(currentOwnerId);
+      window.localStorage.setItem(DEMO_LOADED_KEY, 'true');
+      
+      // Refresh projects to show the demo
+      await fetchProjects(currentOwnerId);
+    } catch (error) {
+      console.error('Failed to load demo project', error);
+      // Don't show error to user, just continue without demo
+    } finally {
+      setLoadingDemo(false);
+    }
+  }, [fetchProjects]);
+
   useEffect(() => {
     if (!ownerId) return;
 
@@ -62,8 +88,18 @@ function App() {
       setSelectedProjectId(existingId);
     }
 
-    fetchProjects(ownerId);
-  }, [ownerId, fetchProjects]);
+    const initializeProjects = async () => {
+      await fetchProjects(ownerId);
+      
+      // After fetching, check if we need to load demo
+      const result = await api.listUseCases(ownerId);
+      if (!result || result.length === 0) {
+        await loadDemo(ownerId);
+      }
+    };
+
+    initializeProjects();
+  }, [ownerId, fetchProjects, loadDemo]);
 
   useEffect(() => {
     if (!selectedProjectId) return;
@@ -174,7 +210,7 @@ function App() {
                   type="button"
                   onClick={() => ownerId && fetchProjects(ownerId)}
                   className="text-sm text-indigo-600 hover:text-indigo-700"
-                  disabled={projectsLoading}
+                  disabled={projectsLoading || loadingDemo}
                 >
                   Refresh
                 </button>
@@ -186,8 +222,13 @@ function App() {
                 </div>
               )}
 
-              {projectsLoading ? (
-                <div className="py-10 text-center text-gray-500">Loading projects...</div>
+              {(projectsLoading || loadingDemo) ? (
+                <div className="py-10 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-3"></div>
+                  <div className="text-gray-500">
+                    {loadingDemo ? 'Loading demo project...' : 'Loading projects...'}
+                  </div>
+                </div>
               ) : projects.length === 0 ? (
                 <div className="py-10 text-center text-gray-500">
                   No projects yet. Create your first project to get started.
@@ -202,9 +243,16 @@ function App() {
                         className="w-full text-left border border-gray-200 rounded-lg px-4 py-3 hover:border-indigo-400 hover:shadow-sm transition"
                       >
                         <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-base font-medium text-gray-900">
-                              {project.name || 'Untitled Project'}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="text-base font-medium text-gray-900">
+                                {project.name || 'Untitled Project'}
+                              </div>
+                              {project.name === 'Invoice Processing Automation' && (
+                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                  Demo
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm text-gray-500">
                               ID: {project.id}
