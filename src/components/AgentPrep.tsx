@@ -417,7 +417,7 @@ export default function AgentPrep({ ownerId, useCaseId }: AgentPrepProps) {
         )}
 
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto p-6">
+          <div className="w-full px-8 py-6 max-w-[1600px] mx-auto">
             {activeSection === 'overview' && (
               <OverviewSection 
                 useCase={useCase} 
