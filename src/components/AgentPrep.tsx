@@ -519,7 +519,7 @@ function OverviewSection({ useCase, setUseCase, markDirty }: any) {
             value={useCase.name}
             onChange={(e) => updateField('name', e.target.value)}
             placeholder="e.g., Invoice Processing Automation"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
 
@@ -532,13 +532,15 @@ function OverviewSection({ useCase, setUseCase, markDirty }: any) {
             onChange={(e) => updateField('objective', e.target.value)}
             placeholder="What business problem are you solving? What value will automation deliver?"
             rows={4}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
           />
-          <div className="mt-2 text-xs text-gray-500">
-            <div className="font-medium mb-1">Examples:</div>
-            {exampleObjectives.map((ex, i) => (
-              <div key={i} className="mb-1">• {ex}</div>
-            ))}
+          <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="text-xs font-medium text-gray-700 mb-2">Example Objectives:</div>
+            <div className="space-y-1.5">
+              {exampleObjectives.map((ex, i) => (
+                <div key={i} className="text-xs text-gray-600">• {ex}</div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -551,7 +553,7 @@ function OverviewSection({ useCase, setUseCase, markDirty }: any) {
             onChange={(e) => updateField('scope', e.target.value)}
             placeholder="What's included? What's excluded? Any constraints or limitations?"
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
           />
         </div>
 
@@ -565,7 +567,7 @@ function OverviewSection({ useCase, setUseCase, markDirty }: any) {
               value={useCase.sponsor}
               onChange={(e) => updateField('sponsor', e.target.value)}
               placeholder="e.g., Director of Finance Ops"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
@@ -576,7 +578,7 @@ function OverviewSection({ useCase, setUseCase, markDirty }: any) {
             <select
               value={useCase.priority}
               onChange={(e) => updateField('priority', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -590,7 +592,7 @@ function OverviewSection({ useCase, setUseCase, markDirty }: any) {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex gap-3">
           <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-900">
+          <div className="text-sm text-blue-800">
             <div className="font-semibold mb-1">Quick Tip</div>
             <div>Be specific about your objective. Good objectives are measurable and time-bound. For example: "Reduce quote processing time from 2 hours to 15 minutes" is better than "Make quotes faster."</div>
           </div>
