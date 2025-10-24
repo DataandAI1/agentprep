@@ -596,6 +596,7 @@ function shouldFallback(error: unknown) {
   if (error instanceof TypeError) return true; // fetch failures in browsers
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
+    if (message.includes('request failed with status')) return true;
     if (message.includes('invalid json')) return true;
     if (message.includes('failed to fetch')) return true;
     if (message.includes('network')) return true;
